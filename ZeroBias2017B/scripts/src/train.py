@@ -1,9 +1,12 @@
 import os
 import json
-import time
+from datetime import datetime
 import pandas as pd
 import numpy as np
 from pathlib import Path
+
+os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
+
 from tensorflow import keras
 from tensorflow.keras import layers
 from tensorflow.keras.callbacks import EarlyStopping
@@ -11,16 +14,28 @@ from sklearn.metrics import confusion_matrix, accuracy_score
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import f1_score
 
+from utils import do_tsne, do_pca
 
 class BlackBox:
-    def __init__(self, data_dir, threshold=0.9):
+    def __init__(self, data_dir, save_dir="trainings", threshold=0.9):
         self.data_dir = data_dir
-        self.input_shape = 0
+
+        _data_dir = "_".join(Path(data_dir).parts)
+        _date_time = datetime.now() .strftime("%Y%m%d-%H%M%S")
+        current_dir = f"train-{_data_dir}-t-{threshold}-{_date_time}"
+        
+        self.save_dir = Path(save_dir).joinpath(current_dir)
+        self.save_dir.mkdir()
+
+        print(f"Save dir: {self.save_dir}")
+
         self.df_train = None
         self.df_test = None
+        self.bin_cols = []
+
         self.df_anomalies = None
         self.threshold = threshold
-        self.bin_cols = []
+        
         self.training_performance = []
         self.model = None
 
@@ -42,12 +57,11 @@ class BlackBox:
 
         self.bin_cols = [f"bin_{i}" for i in range(1, nbins, step)]
 
-        self.input_shape = len(self.bin_cols)
 
     def create_model(self):
         model = keras.Sequential()
         model.add(layers.Dense(units=50, activation="relu",
-                               input_shape=(self.input_shape,)))
+                               input_shape=(len(self.bin_cols),)))
         model.add(layers.Dropout(0.2))
         model.add(layers.Dense(units=25, activation="relu"))
         model.add(layers.Dropout(0.2))
@@ -150,7 +164,7 @@ class BlackBox:
         return df_run
 
     def self_train(self, nruns=None):
-        print("Training initial model")
+        print("Training initial model", end=' | ')
         self.model = self.train_model(self.df_train)
 
         runs = self.df_test.run.unique()
@@ -158,8 +172,8 @@ class BlackBox:
         if nruns:
             runs = runs[:nruns]
 
-        for run_number in runs:
-            print(f"Working with run {run_number}")
+        for train_index, run_number in enumerate(runs):
+            print(f"{train_index}. Working with run {run_number}", end=' | ')
 
             try:
                 # Dataset of a single run
@@ -186,31 +200,42 @@ class BlackBox:
                 self.df_train = pd.concat([self.df_train, df_confident],
                                         ignore_index=True, sort=False)
                 
+                save_path = self.save_dir.joinpath(f"{train_index}_{run_number}.jpg")
+                do_pca(self.df_train, save_path=save_path)
                 self.model = self.train_model(self.df_train)
             except Exception as err:
                 print("Failed self_train |", err)
         
-    def save(self, target_dir="trainings"):
+    def save(self):
         
-        data_dir = self.data_dir.replace("/", "_")
-        training_dir = f"train-{data_dir}-t-{self.threshold}-{time.time()}"
+        self.model.save(self.save_dir.joinpath('model.h5'))
+        self.df_train.to_csv(self.save_dir.joinpath('df_train.csv'))
+        self.df_anomalies.to_csv(self.save_dir.joinpath('df_anomalies.csv'))
 
-        path = Path(target_dir, training_dir)
-        path.mkdir()
-
-        self.model.save(Path(path, 'model.h5'))
-
-        self.df_train.to_csv(Path(path, 'df_train.csv'))
-        self.df_anomalies.to_csv(Path(path, 'df_anomalies.csv'))
-
-        with open(Path(path, 'training_performance.json'), 'w') as fh:
+        with open(self.save_dir.joinpath('training_performance.json'), 'w') as fh:
             json.dump(self.training_performance, fh)
+
+        save_path = self.save_dir.joinpath(f"tsne.jpg")
+        do_tsne(self.df_train, save_path=save_path)
         
 
 if __name__ == "__main__":
 
-    box = BlackBox(data_dir="data", threshold=0.9)
-    box.load_df()
-    box.self_train(nruns=2)
-    box.save()
+    batch = True
 
+    if not batch:
+        box = BlackBox(data_dir="data", threshold=0.9)
+        box.load_df()
+        box.self_train(nruns=2)
+        box.save()
+
+        exit()
+
+
+    for data_dir in ["data", "data_ext"]:
+        for threshold in [0.8, 0.85, 0.9, 0.95]:
+            box = BlackBox(data_dir=data_dir, threshold=threshold)
+            box.load_df()
+            box.self_train()
+            box.save()
+            print()
