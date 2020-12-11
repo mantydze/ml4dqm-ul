@@ -1,5 +1,6 @@
 import os
 import json
+import time
 from datetime import datetime
 import pandas as pd
 import numpy as np
@@ -164,6 +165,7 @@ class BlackBox:
         return df_run
 
     def self_train(self, nruns=None):
+        self.t1 = time.time()
         print("Training initial model", end=' | ')
         self.model = self.train_model(self.df_train)
 
@@ -205,20 +207,43 @@ class BlackBox:
                 self.model = self.train_model(self.df_train)
             except Exception as err:
                 print("Failed self_train |", err)
+
+        self.t2 = time.time()
         
     def save(self):
         
         self.model.save(self.save_dir.joinpath('model.h5'))
+
         self.df_train.to_csv(self.save_dir.joinpath('df_train.csv'))
         self.df_anomalies.to_csv(self.save_dir.joinpath('df_anomalies.csv'))
+
+        self.training_performance = {
+            "trainings": self.training_performance,
+            "duration": int(self.t2 - self.t1)
+        }
 
         with open(self.save_dir.joinpath('training_performance.json'), 'w') as fh:
             json.dump(self.training_performance, fh)
 
+        # Make a gif from pca images
         do_gif(self.save_dir)
-        do_tsne(self.df_train, save_path=self.save_dir.joinpath(f"tsne.jpg"))
+        
+        df_ta = pd.concat([self.df_train, self.df_anomalies], ignore_index=True, sort=False)
+
+        # TSNE for classified dataset
+        do_tsne(self.df_train, save_path=self.save_dir.joinpath(f"tsne_df_train.jpg"))
+
+        # TSNE for classified dataset + anomalies
+        do_tsne(df_ta, save_path=self.save_dir.joinpath(f"tsne_df_ta.jpg"))
+
+        # Plot histograms of classified dataset
         df_plot(self.df_train, save_path=self.save_dir.joinpath(f"df_train.jpg"))
+
+        # Plot histograms of anomalies
         df_plot(self.df_anomalies, save_path=self.save_dir.joinpath(f"df_anomalies.jpg"))
+
+        # Plot histograms of classified dataset + anomalies
+        df_plot(df_ta, save_path=self.save_dir.joinpath(f"df_ta.jpg"))
         
 
 if __name__ == "__main__":
