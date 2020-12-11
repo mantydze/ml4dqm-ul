@@ -14,7 +14,7 @@ from sklearn.metrics import confusion_matrix, accuracy_score
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import f1_score
 
-from utils import do_tsne, do_pca
+from utils import do_tsne, do_pca, do_gif, df_plot
 
 class BlackBox:
     def __init__(self, data_dir, save_dir="trainings", threshold=0.9):
@@ -201,7 +201,7 @@ class BlackBox:
                                         ignore_index=True, sort=False)
                 
                 save_path = self.save_dir.joinpath(f"{train_index}_{run_number}.jpg")
-                do_pca(self.df_train, save_path=save_path)
+                do_pca(self.df_train, title=f"{train_index}", save_path=save_path)
                 self.model = self.train_model(self.df_train)
             except Exception as err:
                 print("Failed self_train |", err)
@@ -215,16 +215,18 @@ class BlackBox:
         with open(self.save_dir.joinpath('training_performance.json'), 'w') as fh:
             json.dump(self.training_performance, fh)
 
-        save_path = self.save_dir.joinpath(f"tsne.jpg")
-        do_tsne(self.df_train, save_path=save_path)
+        do_gif(self.save_dir)
+        do_tsne(self.df_train, save_path=self.save_dir.joinpath(f"tsne.jpg"))
+        df_plot(self.df_train, save_path=self.save_dir.joinpath(f"df_train.jpg"))
+        df_plot(self.df_anomalies, save_path=self.save_dir.joinpath(f"df_anomalies.jpg"))
         
 
 if __name__ == "__main__":
 
-    batch = True
+    batch = False
 
     if not batch:
-        box = BlackBox(data_dir="data", threshold=0.9)
+        box = BlackBox(data_dir="data", save_dir="trainings_test", threshold=0.9)
         box.load_df()
         box.self_train(nruns=2)
         box.save()

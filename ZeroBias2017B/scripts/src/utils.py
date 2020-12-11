@@ -1,6 +1,7 @@
 import json
 import pandas as pd
 import numpy as np
+import subprocess
 from pathlib import Path
 import matplotlib.pyplot as plt
 from sklearn.manifold import TSNE
@@ -92,3 +93,37 @@ def do_tsne(df=None, X=None, y=None, ignore_y=False, metric=None, show=False, sa
         plt.show() 
     
     plt.close()
+
+def df_plot(df, title="", show=False, save_path=None):
+    plt.figure()
+    plt.title(title)
+
+    for _, row in df.iterrows():
+
+        data = [row[col]/row["entries"] for col in row.keys() if 'bin_' in col]
+        data = data[1:-1]
+
+        plt.plot(range(len(data)), data, color=palette[row['y']], alpha=.1)    
+                
+    if save_path:
+        # plt.savefig(Path(save_path).with_suffix(".svg"), format='svg')
+        plt.savefig(save_path)
+
+    if show:
+        plt.show() 
+    
+    plt.close()
+
+def do_gif(save_dir):
+    cmd = f"cd {save_dir} ; convert -loop 0 `ls -v | grep '^[0-9]'` training.gif"
+    process = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE)
+    process.wait()
+
+# if __name__ == "__main__":
+    # for tdir in Path("trainings").iterdir():
+        # print(tdir)
+        # do_gif(save_dir=tdir)
+        # for df_name in ["df_train.csv", "df_anomalies.csv"]:
+        #     print(tdir.joinpath(df_name))
+        #     df = pd.read_csv(tdir.joinpath(df_name))
+        #     df_plot(df, save_path=tdir.joinpath(df_name).with_suffix(".jpg"))
