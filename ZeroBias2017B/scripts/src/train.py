@@ -1,3 +1,11 @@
+# import setGPU
+from utils import do_tsne, do_pca, do_gif, df_plot
+from sklearn.metrics import f1_score
+from sklearn.model_selection import train_test_split
+from sklearn.metrics import confusion_matrix, accuracy_score
+from tensorflow.keras.callbacks import EarlyStopping
+from tensorflow.keras import layers
+from tensorflow import keras
 import os
 import json
 import time
@@ -8,25 +16,16 @@ from pathlib import Path
 
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
 
-from tensorflow import keras
-from tensorflow.keras import layers
-from tensorflow.keras.callbacks import EarlyStopping
-from sklearn.metrics import confusion_matrix, accuracy_score
-from sklearn.model_selection import train_test_split
-from sklearn.metrics import f1_score
-
-from utils import do_tsne, do_pca, do_gif, df_plot
 
 class BlackBox:
     def __init__(self, data_dir, save_dir="trainings", threshold=0.9):
         self.data_dir = data_dir
 
-        _data_dir = "_".join(Path(data_dir).parts)
         _date_time = datetime.now() .strftime("%Y%m%d-%H%M%S")
-        current_dir = f"train-{_data_dir}-t-{threshold}-{_date_time}"
-        
+        current_dir = f"train-{Path(data_dir).name}-t-{threshold}-{_date_time}"
+
         self.save_dir = Path(save_dir).joinpath(current_dir)
-        self.save_dir.mkdir()
+        self.save_dir.mkdir(parents=True)
 
         print(f"Save dir: {self.save_dir}")
 
@@ -36,16 +35,19 @@ class BlackBox:
 
         self.df_anomalies = None
         self.threshold = threshold
-        
+
         self.training_performance = []
         self.model = None
 
     def load_df(self, nbins=100, step=1):
 
-        self.df_train = pd.read_csv(Path(self.data_dir, 'train.csv'))   # Hand picked data
-        self.df_test = pd.read_csv(Path(self.data_dir, 'test.csv'))  # Data to be classified
+        self.df_train = pd.read_csv(
+            Path(self.data_dir, 'train.csv'))   # Hand picked data
+        self.df_test = pd.read_csv(
+            Path(self.data_dir, 'test.csv'))  # Data to be classified
 
-        print(f"Train set {self.df_train.shape} | Test set {self.df_test.shape}")
+        print(
+            f"Train set {self.df_train.shape} | Test set {self.df_test.shape}")
 
         # Filter list of columns which will be used for training
         self.bin_cols = [col for col in self.df_train.columns if 'bin_' in col]
@@ -57,7 +59,6 @@ class BlackBox:
             nbins = len(self.bin_cols)
 
         self.bin_cols = [f"bin_{i}" for i in range(1, nbins, step)]
-
 
     def create_model(self):
         model = keras.Sequential()
@@ -95,13 +96,14 @@ class BlackBox:
             y_test = np.asarray(y_test)
 
             # Train
-            es = EarlyStopping(monitor='loss', mode='min', patience=5, verbose=1)
+            es = EarlyStopping(monitor='loss', mode='min',
+                               patience=5, verbose=1)
             model = self.create_model()
             model.fit(X_train, y_train, verbose=0,
-                    batch_size=150,
-                    epochs=1000,
-                    shuffle=True,
-                    callbacks=[es])
+                      batch_size=150,
+                      epochs=1000,
+                      shuffle=True,
+                      callbacks=[es])
 
             # Predict
             y_pred_ = model.predict(X_test)
@@ -135,7 +137,8 @@ class BlackBox:
 
         try:
             # Scale each row by dividing by number of total entries within a run
-            X = df_run.filter(self.bin_cols, axis=1).div(df_run.entries, axis=0)
+            X = df_run.filter(self.bin_cols, axis=1).div(
+                df_run.entries, axis=0)
             X = np.asarray(X)
 
             y_pred = self.model.predict(X)
@@ -150,13 +153,14 @@ class BlackBox:
             # Predictions with lower probability than threshold are considered as BAD
             filter_bad = df_run['y_pred'] <= 1-self.threshold
             # Predictions between lower and higher thresholds are considered as ANOMALIES
-            filter_anon = (1-self.threshold < df_run['y_pred']) & (df_run['y_pred'] < self.threshold)
-            
+            filter_anon = (
+                1-self.threshold < df_run['y_pred']) & (df_run['y_pred'] < self.threshold)
+
             # Create new column y and set final label there
             df_run.loc[filter_good, 'y'] = 1
             df_run.loc[filter_bad, 'y'] = 0
             df_run.loc[filter_anon, 'y'] = 2
-            df_run = df_run.astype({"y":"int32"})
+            df_run = df_run.astype({"y": "int32"})
 
         except Exception as err:
             print("Failed predict_run |", err)
@@ -193,25 +197,27 @@ class BlackBox:
                     self.df_anomalies = df_anomalies
                 else:
                     self.df_anomalies = pd.concat([self.df_anomalies, df_anomalies],
-                                                ignore_index=True, sort=False)
+                                                  ignore_index=True, sort=False)
 
                 # Take a subset of only good and bad predictions, but no anomalies
                 df_confident = df_run[df_run["y"] != 2].copy()
 
                 # Add new predictions to a training dataset
                 self.df_train = pd.concat([self.df_train, df_confident],
-                                        ignore_index=True, sort=False)
-                
-                save_path = self.save_dir.joinpath(f"{train_index}_{run_number}.jpg")
-                do_pca(self.df_train, title=f"{train_index}", save_path=save_path)
+                                          ignore_index=True, sort=False)
+
+                save_path = self.save_dir.joinpath(
+                    f"{train_index}_{run_number}.jpg")
+                do_pca(self.df_train,
+                       title=f"{train_index}", save_path=save_path)
                 self.model = self.train_model(self.df_train)
             except Exception as err:
                 print("Failed self_train |", err)
 
         self.t2 = time.time()
-        
+
     def save(self):
-        
+
         self.model.save(self.save_dir.joinpath('model.h5'))
 
         self.df_train.to_csv(self.save_dir.joinpath('df_train.csv'))
@@ -227,11 +233,13 @@ class BlackBox:
 
         # Make a gif from pca images
         do_gif(self.save_dir)
-        
-        df_ta = pd.concat([self.df_train, self.df_anomalies], ignore_index=True, sort=False)
+
+        df_ta = pd.concat([self.df_train, self.df_anomalies],
+                          ignore_index=True, sort=False)
 
         # TSNE for classified dataset
-        do_tsne(self.df_train, save_path=self.save_dir.joinpath(f"tsne_df_train.jpg"))
+        do_tsne(self.df_train, save_path=self.save_dir.joinpath(
+            f"tsne_df_train.jpg"))
 
         # TSNE for classified dataset + anomalies
         do_tsne(df_ta, save_path=self.save_dir.joinpath(f"tsne_df_ta.jpg"))
@@ -240,28 +248,35 @@ class BlackBox:
         df_plot(self.df_train, save_path=self.save_dir.joinpath(f"df_train.jpg"))
 
         # Plot histograms of anomalies
-        df_plot(self.df_anomalies, save_path=self.save_dir.joinpath(f"df_anomalies.jpg"))
+        df_plot(self.df_anomalies, save_path=self.save_dir.joinpath(
+            f"df_anomalies.jpg"))
 
         # Plot histograms of classified dataset + anomalies
         df_plot(df_ta, save_path=self.save_dir.joinpath(f"df_ta.jpg"))
-        
+
 
 if __name__ == "__main__":
 
-    batch = False
+    batch = True
+
+    base_dir = Path('/eos/home-m/mantydze/ZeroBias2018B/scripts')
+    # base_dir = Path('.')
 
     if not batch:
-        box = BlackBox(data_dir="data", save_dir="trainings_test", threshold=0.9)
+        box = BlackBox(data_dir=base_dir.joinpath("data"),
+                       save_dir=base_dir.joinpath("trainings_test"),
+                       threshold=0.9)
         box.load_df()
         box.self_train(nruns=2)
         box.save()
 
         exit()
 
-
     for data_dir in ["data", "data_ext"]:
-        for threshold in [0.8, 0.85, 0.9, 0.95]:
-            box = BlackBox(data_dir=data_dir, threshold=threshold)
+        for threshold in [0.5, 0.8, 0.85, 0.9, 0.95]:
+            box = BlackBox(data_dir=base_dir.joinpath(data_dir),
+                           save_dir=base_dir.joinpath("trainings"),
+                           threshold=threshold)
             box.load_df()
             box.self_train()
             box.save()
