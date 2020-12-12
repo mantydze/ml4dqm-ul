@@ -287,7 +287,7 @@ if __name__ == "__main__":
 
     else:
         data_dirs = ["data", "data_ext"]
-        thresholds = [0.5, 0.8, 0.85, 0.9, 0.95]
+        thresholds = [0.5, 0.6, 0.7, 0.75, 0.8, 0.85, 0.9, 0.95]
 
         for data_dir, threshold in zip(data_dirs, thresholds):
             box = BlackBox(data_dir=base_dir.joinpath(data_dir),
