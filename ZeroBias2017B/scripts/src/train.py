@@ -1,4 +1,9 @@
-# import setGPU
+try:
+    import waitGPU
+    waitGPU.wait(ngpu=1)
+except:
+    print("Failed to import waitGPU")
+
 from utils import do_tsne, do_pca, do_gif, df_plot
 from sklearn.metrics import f1_score
 from sklearn.model_selection import train_test_split
@@ -223,14 +228,6 @@ class BlackBox:
         self.df_train.to_csv(self.save_dir.joinpath('df_train.csv'))
         self.df_anomalies.to_csv(self.save_dir.joinpath('df_anomalies.csv'))
 
-        self.training_performance = {
-            "trainings": self.training_performance,
-            "duration": int(self.t2 - self.t1)
-        }
-
-        with open(self.save_dir.joinpath('training_performance.json'), 'w') as fh:
-            json.dump(self.training_performance, fh)
-
         # Make a gif from pca images
         do_gif(self.save_dir)
 
@@ -254,13 +251,29 @@ class BlackBox:
         # Plot histograms of classified dataset + anomalies
         df_plot(df_ta, save_path=self.save_dir.joinpath(f"df_ta.jpg"))
 
+        self.t3 = time.time()
+
+        self.training_performance = {
+            "trainings": self.training_performance,
+            "duration": {
+                "train": int(self.t2 - self.t1),
+                "visual": int(self.t3 - self.t2),
+                "total": int(self.t3 - self.t1)
+            }
+        }
+
+        with open(self.save_dir.joinpath('training_performance.json'), 'w') as fh:
+            json.dump(self.training_performance, fh)
+        
+        print(self.training_performance["duration"])
+
 
 if __name__ == "__main__":
 
     batch = True
 
-    base_dir = Path('/eos/home-m/mantydze/ZeroBias2018B/scripts')
-    # base_dir = Path('.')
+    # base_dir = Path('/eos/home-m/mantydze/ZeroBias2018B/scripts')
+    base_dir = Path('.')
 
     if not batch:
         box = BlackBox(data_dir=base_dir.joinpath("data"),
@@ -272,8 +285,11 @@ if __name__ == "__main__":
 
         exit()
 
-    for data_dir in ["data", "data_ext"]:
-        for threshold in [0.5, 0.8, 0.85, 0.9, 0.95]:
+    else:
+        data_dirs = ["data", "data_ext"]
+        thresholds = [0.5, 0.8, 0.85, 0.9, 0.95]
+
+        for data_dir, threshold in zip(data_dirs, thresholds):
             box = BlackBox(data_dir=base_dir.joinpath(data_dir),
                            save_dir=base_dir.joinpath("trainings"),
                            threshold=threshold)

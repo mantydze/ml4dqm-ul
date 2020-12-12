@@ -120,13 +120,16 @@ def do_gif(save_dir):
     process.wait()
 
 if __name__ == "__main__":
-    for tdir in Path("trainings").iterdir():
-        print(tdir)
-        do_gif(save_dir=tdir)
 
-        for df_name in ["df_train.csv", "df_anomalies.csv"]:
-            print(tdir.joinpath(df_name))
-            df = pd.read_csv(tdir.joinpath(df_name))
-            df_plot(df, save_path=tdir.joinpath(df_name).with_suffix(".jpg"))
+    # for tdir in Path("trainings").iterdir():
+    #     print(tdir)
+    #     do_gif(save_dir=tdir)
+
+    #     for df_name in ["df_train.csv", "df_anomalies.csv"]:
+    #         print(tdir.joinpath(df_name))
+    #         df = pd.read_csv(tdir.joinpath(df_name))
+    #         df_plot(df, save_path=tdir.joinpath(df_name).with_suffix(".jpg"))
         
-        print()
+    #     print()
+
+    pass
