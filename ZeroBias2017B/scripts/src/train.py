@@ -289,11 +289,12 @@ if __name__ == "__main__":
         data_dirs = ["data", "data_ext"]
         thresholds = [0.5, 0.6, 0.7, 0.75, 0.8, 0.85, 0.9, 0.95]
 
-        for data_dir, threshold in zip(data_dirs, thresholds):
-            box = BlackBox(data_dir=base_dir.joinpath(data_dir),
-                           save_dir=base_dir.joinpath("trainings"),
-                           threshold=threshold)
-            box.load_df()
-            box.self_train()
-            box.save()
-            print()
+        for data_dir in data_dirs:
+            for threshold in thresholds:
+                box = BlackBox(data_dir=base_dir.joinpath(data_dir),
+                            save_dir=base_dir.joinpath("trainings"),
+                            threshold=threshold)
+                box.load_df()
+                box.self_train()
+                box.save()
+                print()
