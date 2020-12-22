@@ -62,6 +62,7 @@ def do_pca(df=None, X=None, y=None, include_elbow=False, ignore_y=False, title="
     
     if save_path:
         # plt.savefig(Path(save_path).with_suffix(".svg"), format='svg')
+        Path(save_path).parent.mkdir(parents=True, exist_ok=True)
         plt.savefig(save_path)
 
     if show:
@@ -87,6 +88,7 @@ def do_tsne(df=None, X=None, y=None, ignore_y=False, metric=None, show=False, sa
 
     if save_path:
         # plt.savefig(Path(save_path).with_suffix(".svg"), format='svg')
+        Path(save_path).parent.mkdir(parents=True, exist_ok=True)
         plt.savefig(save_path)
 
     if show:
@@ -107,6 +109,7 @@ def df_plot(df, title="", show=False, save_path=None):
                 
     if save_path:
         # plt.savefig(Path(save_path).with_suffix(".svg"), format='svg')
+        Path(save_path).parent.mkdir(parents=True, exist_ok=True)
         plt.savefig(save_path)
 
     if show:
@@ -114,8 +117,8 @@ def df_plot(df, title="", show=False, save_path=None):
     
     plt.close()
 
-def do_gif(save_dir):
-    cmd = f"cd {save_dir} ; convert -loop 0 `ls -v | grep '^[0-9]'` training.gif"
+def do_gif(save_dir, directory="pca"):
+    cmd = f"cd {save_dir} ; convert -loop 0 `ls {directory} -v | grep '^[0-9]'` training.gif"
     process = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE)
     process.wait()
 

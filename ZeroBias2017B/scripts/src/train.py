@@ -8,6 +8,7 @@ from utils import do_tsne, do_pca, do_gif, df_plot
 from sklearn.metrics import f1_score
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import confusion_matrix, accuracy_score
+from sklearn.utils import class_weight
 from tensorflow.keras.callbacks import EarlyStopping
 from tensorflow.keras import layers
 from tensorflow import keras
@@ -100,6 +101,11 @@ class BlackBox:
             y_train = np.asarray(y_train)
             y_test = np.asarray(y_test)
 
+            # Calculate class weights
+            classes = np.unique(y)
+            weights = class_weight.compute_class_weight('balanced', classes, y)
+            cw = {int(cls): weight for cls, weight in zip(classes, weights)}
+
             # Train
             es = EarlyStopping(monitor='loss', mode='min',
                                patience=5, verbose=1)
@@ -109,6 +115,7 @@ class BlackBox:
                       epochs=1000,
                       shuffle=True,
                       callbacks=[es])
+                    #   class_weight=cw)
 
             # Predict
             y_pred_ = model.predict(X_test)
@@ -211,10 +218,14 @@ class BlackBox:
                 self.df_train = pd.concat([self.df_train, df_confident],
                                           ignore_index=True, sort=False)
 
-                save_path = self.save_dir.joinpath(
-                    f"{train_index}_{run_number}.jpg")
+                pca_save_path = self.save_dir.joinpath(f"pca/{train_index}-{run_number}.jpg")
+                dftrain_save_path = self.save_dir.joinpath(f"dftrain/{train_index}-{run_number}.jpg")
+
                 do_pca(self.df_train,
-                       title=f"{train_index}", save_path=save_path)
+                       title=f"{train_index}", save_path=pca_save_path)
+
+                df_plot(self.df_train, title=f"{train_index}", save_path=dftrain_save_path)
+                
                 self.model = self.train_model(self.df_train)
             except Exception as err:
                 print("Failed self_train |", err)
@@ -229,7 +240,7 @@ class BlackBox:
         self.df_anomalies.to_csv(self.save_dir.joinpath('df_anomalies.csv'))
 
         # Make a gif from pca images
-        do_gif(self.save_dir)
+        # do_gif(self.save_dir)
 
         df_ta = pd.concat([self.df_train, self.df_anomalies],
                           ignore_index=True, sort=False)
@@ -286,13 +297,13 @@ if __name__ == "__main__":
         exit()
 
     else:
-        data_dirs = ["data", "data_ext"]
-        thresholds = [0.5, 0.6, 0.7, 0.75, 0.8, 0.85, 0.9, 0.95]
+        data_dirs = ["data_single"]
+        thresholds = sorted([0.5, 0.6, 0.7, 0.75, 0.8, 0.85, 0.9, 0.95], reverse=True)
 
         for data_dir in data_dirs:
             for threshold in thresholds:
                 box = BlackBox(data_dir=base_dir.joinpath(data_dir),
-                            save_dir=base_dir.joinpath("trainings"),
+                            save_dir=base_dir.joinpath("trainings_single"),
                             threshold=threshold)
                 box.load_df()
                 box.self_train()
