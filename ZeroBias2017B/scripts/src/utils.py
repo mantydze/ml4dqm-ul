@@ -1,4 +1,5 @@
 import json
+import time
 import pandas as pd
 import numpy as np
 import subprocess
@@ -34,7 +35,6 @@ def prepare_df(df, X, y, ignore_y=False):
     return X, y
 
 def do_pca(df=None, X=None, y=None, include_elbow=False, ignore_y=False, title="", show=False, save_path=False):
-    
     X, y = prepare_df(df, X, y, ignore_y)
         
     n_components = len(y)
@@ -56,7 +56,7 @@ def do_pca(df=None, X=None, y=None, include_elbow=False, ignore_y=False, title="
     
     colors = [palette[y_] for y_ in y]
     
-    plt.figure()
+    plt.figure(figsize=(20, 20))
     plt.title(title)
     plt.scatter(pcomp[:,0], pcomp[:,1], color=colors, alpha=.1, label=y)
     
@@ -97,7 +97,7 @@ def do_tsne(df=None, X=None, y=None, ignore_y=False, metric=None, show=False, sa
     plt.close()
 
 def df_plot(df, title="", show=False, save_path=None):
-    plt.figure()
+    plt.figure(figsize=(20, 20))
     plt.title(title)
 
     for _, row in df.iterrows():
@@ -117,22 +117,43 @@ def df_plot(df, title="", show=False, save_path=None):
     
     plt.close()
 
+def df_plot2(df_left, df_right, title1="", title2="", show=False, save_path=None):
+    plt.figure(figsize=(20, 10))
+
+    ax1 = plt.subplot(121)
+    ax1.set_title(title1)
+    for _, row in df_left.iterrows():
+
+        data = [row[col]/row["entries"] for col in row.keys() if 'bin_' in col]
+        data = data[1:-1]
+
+        ax1.plot(range(len(data)), data, color=palette[row['y']], alpha=.1) 
+
+
+    ax2 = plt.subplot(122)
+    ax2.set_title(title2)
+    for _, row in df_right.iterrows():
+
+        data = [row[col]/row["entries"] for col in row.keys() if 'bin_' in col]
+        data = data[1:-1]
+
+        ax2.plot(range(len(data)), data, color=palette[row['y']], alpha=.1)   
+                
+    if save_path:
+        # plt.savefig(Path(save_path).with_suffix(".svg"), format='svg')
+        Path(save_path).parent.mkdir(parents=True, exist_ok=True)
+        plt.savefig(save_path)
+
+    if show:
+        plt.show() 
+    
+    plt.close()
+
 def do_gif(save_dir, directory="pca"):
     cmd = f"cd {save_dir} ; convert -loop 0 `ls {directory} -v | grep '^[0-9]'` training.gif"
     process = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE)
     process.wait()
 
 if __name__ == "__main__":
-
-    # for tdir in Path("trainings").iterdir():
-    #     print(tdir)
-    #     do_gif(save_dir=tdir)
-
-    #     for df_name in ["df_train.csv", "df_anomalies.csv"]:
-    #         print(tdir.joinpath(df_name))
-    #         df = pd.read_csv(tdir.joinpath(df_name))
-    #         df_plot(df, save_path=tdir.joinpath(df_name).with_suffix(".jpg"))
-        
-    #     print()
 
     pass

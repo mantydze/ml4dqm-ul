@@ -27,7 +27,7 @@ class BlackBox:
     def __init__(self, data_dir, save_dir="trainings", threshold=0.9):
         self.data_dir = data_dir
 
-        _date_time = datetime.now() .strftime("%Y%m%d-%H%M%S")
+        _date_time = datetime.now() .strftime("%Y-%m-%dT%H-%M-%S")
         current_dir = f"train-{Path(data_dir).name}-t-{threshold}-{_date_time}"
 
         self.save_dir = Path(save_dir).joinpath(current_dir)
