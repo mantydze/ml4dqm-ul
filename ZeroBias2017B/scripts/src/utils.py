@@ -63,8 +63,7 @@ def do_pca(df=None, X=None, y=None, bin_cols=None, include_elbow=False, ignore_y
     plt.figure(figsize=(20, 20))
     plt.title(title)
     plt.scatter(pcomp[:, 0], pcomp[:, 1], color=colors, alpha=.1, label=y)
-    
-    plt.axis('off')
+
     if save_path:
         # plt.savefig(Path(save_path).with_suffix(".svg"), format='svg')
         Path(save_path).parent.mkdir(parents=True, exist_ok=True)
@@ -103,7 +102,6 @@ def do_tsne(df=None, X=None, y=None, bin_cols=None, ignore_y=False, metric=None,
 
     plt.close()
 
-
 def df_plot(df, bin_cols=None, title="", show=False, save_path=None, ymax=0.05):
     plt.figure(figsize=(20, 20))
     plt.title(title)
@@ -122,7 +120,6 @@ def df_plot(df, bin_cols=None, title="", show=False, save_path=None, ymax=0.05):
     if ymax is not None:
         plt.ylim(ymax=ymax) # do not move this line
 
-    plt.axis('off')
     if save_path:
         # plt.savefig(Path(save_path).with_suffix(".svg"), format='svg')
         Path(save_path).parent.mkdir(parents=True, exist_ok=True)
