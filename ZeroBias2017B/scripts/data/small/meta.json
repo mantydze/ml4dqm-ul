@@ -1,0 +1,1 @@
+{"dset_path": "../data_raw/chargeInner_PXLayer_1.csv", "dset_name": "ZeroBias", "dset_era": "2017B", "histo_name": "chargeInner_PXLayer_1", "good": [{"run_number": 297050, "exclude": [420, 421, 424, 426, 429]}], "bad": [{"run_number": 297047}, {"run_number": 297048}, {"run_number": 297049}, {"run_number": 297050, "include": [420, 421, 424, 426, 429]}]}
